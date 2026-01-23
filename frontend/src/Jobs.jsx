@@ -21,6 +21,7 @@ export default function Jobs() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
   const [editingJob, setEditingJob] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'work_order_number', direction: 'desc' });
 
   const location = useLocation();
   const isActive = (path) => location.pathname === path ? "border-indigo-500 text-gray-900" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700";
@@ -148,14 +149,48 @@ export default function Jobs() {
     } catch (error) { console.error('Error deleting job:', error); }
   };
 
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const filteredJobs = jobs.filter(job => 
     (job.work_order_number && job.work_order_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
     getClientName(job.client_id).toLowerCase().includes(searchTerm.toLowerCase())
   ).filter(job => statusFilter === 'All' || job.status === statusFilter)
   .sort((a, b) => {
-    const woA = a.work_order_number || '';
-    const woB = b.work_order_number || '';
-    return woB.localeCompare(woA);
+    if (!sortConfig.key) return 0;
+    
+    let valA, valB;
+    
+    // Handle special fields that need lookup or formatting
+    if (sortConfig.key === 'client_id') {
+        valA = getClientName(a.client_id).toLowerCase();
+        valB = getClientName(b.client_id).toLowerCase();
+    } else if (sortConfig.key === 'task_id') {
+        valA = (tasks.find(t => getMongoId(t) === a.task_id)?.name || '').toLowerCase();
+        valB = (tasks.find(t => getMongoId(t) === b.task_id)?.name || '').toLowerCase();
+    } else if (sortConfig.key === 'crew_id') {
+        valA = (crews.find(c => getMongoId(c) === a.crew_id)?.name || '').toLowerCase();
+        valB = (crews.find(c => getMongoId(c) === b.crew_id)?.name || '').toLowerCase();
+    } else if (sortConfig.key === 'technician_id') {
+        valA = (employees.find(e => getMongoId(e) === a.technician_id)?.name || '').toLowerCase();
+        valB = (employees.find(e => getMongoId(e) === b.technician_id)?.name || '').toLowerCase();
+    } else {
+        valA = (a[sortConfig.key] || '').toString().toLowerCase();
+        valB = (b[sortConfig.key] || '').toString().toLowerCase();
+    }
+
+    if (valA < valB) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (valA > valB) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
   });
 
   return (
@@ -210,7 +245,9 @@ export default function Jobs() {
         </div>
 
         <JobTable 
-          jobs={filteredJobs} 
+          jobs={filteredJobs}
+          sortConfig={sortConfig}
+          onSort={requestSort}
           clients={clients} 
           tasks={tasks} 
           crews={crews} 

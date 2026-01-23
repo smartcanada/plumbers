@@ -1,7 +1,7 @@
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const DeleteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
 
-export default function JobTable({ jobs, clients, tasks, crews, employees, onEdit, onDelete }) {
+export default function JobTable({ jobs, sortConfig, onSort, clients, tasks, crews, employees, onEdit, onDelete }) {
   const getMongoId = (item) => {
       if (!item) return null;
       if (item._id && typeof item._id === 'object' && item._id.$oid) return String(item._id.$oid).trim();
@@ -28,18 +28,23 @@ export default function JobTable({ jobs, clients, tasks, crews, employees, onEdi
     return emp ? emp.name : '-';
   };
 
+  const getClassNamesFor = (name) => {
+    if (!sortConfig) return '';
+    return sortConfig.key === name ? (sortConfig.direction === 'asc' ? 'text-indigo-600' : 'text-indigo-600') : '';
+  };
+
   return (
     <div className="bg-white shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">WO #</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Client</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Task</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Crew</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Technician</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
+            <th scope="col" onClick={() => onSort('work_order_number')} className={`py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('work_order_number')}`}>WO # {sortConfig?.key === 'work_order_number' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('client_id')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('client_id')}`}>Client {sortConfig?.key === 'client_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('task_id')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('task_id')}`}>Task {sortConfig?.key === 'task_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('crew_id')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('crew_id')}`}>Crew {sortConfig?.key === 'crew_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('technician_id')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('technician_id')}`}>Technician {sortConfig?.key === 'technician_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('status')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('status')}`}>Status {sortConfig?.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+            <th scope="col" onClick={() => onSort('start_time')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('start_time')}`}>Date {sortConfig?.key === 'start_time' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
             <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>

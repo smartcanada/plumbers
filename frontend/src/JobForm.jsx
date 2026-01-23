@@ -8,7 +8,7 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
   const defaultJobData = {
     work_order_number: '', client_id: '', crew_id: '', task_id: '', technician_id: '',
     recurrence: 'one_time', status: 'Unscheduled', notes: '', priority: 'Standard', job_type: 'Service', 
-    start_time: null, end_time: null, inventory_ids: []
+    start_time: null, end_time: null, inventory_ids: [], service_locations: []
   };
 
   const getMongoId = (item) => {
@@ -32,7 +32,8 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
         job_type: job.job_type || 'Service',
         start_time: (job.start_time && typeof job.start_time === 'string') ? new Date(job.start_time) : (job.start_time instanceof Date ? job.start_time : null),
         end_time: (job.end_time && typeof job.end_time === 'string') ? new Date(job.end_time) : (job.end_time instanceof Date ? job.end_time : null),
-        inventory_ids: Array.isArray(job.inventory_ids) ? job.inventory_ids : []
+        inventory_ids: Array.isArray(job.inventory_ids) ? job.inventory_ids : [],
+        service_locations: Array.isArray(job.service_locations) ? job.service_locations : []
       };
     }
     return defaultJobData;
@@ -58,18 +59,26 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
         const client = clients.find(c => getMongoId(c) === job.client_id);
         if (client) {
             const newSelections = { cottage: false, boathouse: false, cabin_1: false, cabin_2: false, garage: false };
-            ['cottage', 'boathouse', 'cabin_1', 'cabin_2', 'garage'].forEach(b => {
-                if (client[b]) {
-                    const sysId = client[`${b}_system_id`];
-                    const task = tasks.find(t => getMongoId(t) === sysId);
-                    if (task && task.inventory_ids && task.inventory_ids.length > 0) {
-                        // Heuristic: If the job has the items from this system, assume it was selected
-                        const jobInventory = Array.isArray(job.inventory_ids) ? job.inventory_ids : [];
-                        const hasItems = task.inventory_ids.every(id => jobInventory.includes(id));
-                        if (hasItems) newSelections[b] = true;
+            
+            // 1. Try to load from saved service_locations (New Logic)
+            if (job.service_locations && Array.isArray(job.service_locations) && job.service_locations.length > 0) {
+                job.service_locations.forEach(loc => {
+                    if (newSelections.hasOwnProperty(loc)) newSelections[loc] = true;
+                });
+            } else {
+                // 2. Fallback to inventory heuristic (Legacy Logic)
+                ['cottage', 'boathouse', 'cabin_1', 'cabin_2', 'garage'].forEach(b => {
+                    if (client[b]) {
+                        const sysId = client[`${b}_system_id`];
+                        const task = tasks.find(t => getMongoId(t) === sysId);
+                        if (task && task.inventory_ids && task.inventory_ids.length > 0) {
+                            const jobInventory = Array.isArray(job.inventory_ids) ? job.inventory_ids : [];
+                            const hasItems = task.inventory_ids.every(id => jobInventory.includes(id));
+                            if (hasItems) newSelections[b] = true;
+                        }
                     }
-                }
-            });
+                });
+            }
             setBuildingSelections(newSelections);
         }
     }
@@ -80,7 +89,8 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
     setFormData({ 
         ...formData, 
         client_id: clientId,
-        inventory_ids: [] // Reset inventory when client changes
+        inventory_ids: [], // Reset inventory when client changes
+        service_locations: [] // Reset locations
     });
     setBuildingSelections({ cottage: false, boathouse: false, cabin_1: false, cabin_2: false, garage: false });
   };
@@ -95,6 +105,14 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
     if (!systemId) {
         // Just toggle the visual check if no system is assigned (no inventory to change)
         setBuildingSelections({ ...buildingSelections, [building]: !isSelected });
+        
+        // Update service_locations array
+        const currentLocations = formData.service_locations || [];
+        let newLocations;
+        if (!isSelected) newLocations = [...currentLocations, building];
+        else newLocations = currentLocations.filter(b => b !== building);
+        
+        setFormData(prev => ({ ...prev, service_locations: newLocations }));
         return;
     }
 
@@ -102,10 +120,13 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
     if (!task || !task.inventory_ids) return;
 
     let newInventoryIds = [...formData.inventory_ids];
+    const currentLocations = formData.service_locations || [];
+    let newLocations;
 
     if (!isSelected) {
         // Add items
         newInventoryIds = [...newInventoryIds, ...task.inventory_ids];
+        newLocations = [...currentLocations, building];
     } else {
         // Remove items (remove one instance of each item in the system)
         let tempIds = [...newInventoryIds];
@@ -114,9 +135,10 @@ export default function JobForm({ job, clients, tasks, crews, employees, invento
             if (idx > -1) tempIds.splice(idx, 1);
         });
         newInventoryIds = tempIds;
+        newLocations = currentLocations.filter(b => b !== building);
     }
 
-    setFormData({ ...formData, inventory_ids: newInventoryIds });
+    setFormData({ ...formData, inventory_ids: newInventoryIds, service_locations: newLocations });
     setBuildingSelections({ ...buildingSelections, [building]: !isSelected });
   };
 

@@ -134,6 +134,7 @@ class Job(BaseModel):
     job_type: Optional[str] = "Service"
     technician_id: Optional[str] = None
     client_signature: Optional[str] = None # Base64 encoded image
+    service_locations: Optional[List[str]] = [] # e.g. ["cottage", "boathouse"]
 
     class Config:
         allow_population_by_field_name = True

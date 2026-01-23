@@ -22,6 +22,7 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'issue_date', direction: 'desc' });
   const [formData, setFormData] = useState({
     client_id: '', job_id: '', invoice_number: '', description: '', total_amount: 0, status: 'Draft', issue_date: '', due_date: '', paid_date: '', client_signature: '', items: []
   });
@@ -118,12 +119,20 @@ export default function Invoices() {
 
     const total = newItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
+    // Format description with location if available
+    let description = `Invoice for ${job.work_order_number || 'Job'}`;
+    if (job.service_locations && job.service_locations.length > 0) {
+        // Capitalize first letter of each location
+        const locations = job.service_locations.map(loc => loc.charAt(0).toUpperCase() + loc.slice(1)).join(', ');
+        description += ` (${locations})`;
+    }
+
     setFormData({
         ...formData,
         job_id: jobId,
         client_id: job.client_id,
         invoice_number: job.work_order_number ? job.work_order_number.replace('WO-', 'INV-') : '',
-        description: `Invoice for ${job.work_order_number || 'Job'}`,
+        description: description,
         issue_date: job.end_time ? job.end_time.substring(0, 10) : new Date().toISOString().substring(0, 10),
         items: newItems,
         total_amount: total
@@ -138,6 +147,16 @@ export default function Invoices() {
     const total = newItems.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)), 0);
     
     setFormData({ ...formData, items: newItems, total_amount: total });
+  };
+
+  const addLineItem = () => {
+    const newItems = [...formData.items, { description: '', quantity: 1, unit_price: 0 }];
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const removeLineItem = (index) => {
+    const newItems = formData.items.filter((_, i) => i !== index);
+    setFormData({ ...formData, items: newItems });
   };
 
   // Signature Pad Logic
@@ -359,16 +378,47 @@ export default function Invoices() {
     }
   };
 
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const filteredInvoices = invoices
     .filter(inv => 
       (inv.invoice_number && inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
       getClientName(inv.client_id).toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      const dateA = a.issue_date ? new Date(a.issue_date) : 0;
-      const dateB = b.issue_date ? new Date(b.issue_date) : 0;
-      return dateB - dateA;
+      if (!sortConfig.key) return 0;
+
+      let valA, valB;
+      if (sortConfig.key === 'client_id') {
+        valA = getClientName(a.client_id).toLowerCase();
+        valB = getClientName(b.client_id).toLowerCase();
+      } else if (sortConfig.key === 'total_amount') {
+        valA = parseFloat(a.total_amount || 0);
+        valB = parseFloat(b.total_amount || 0);
+      } else {
+        valA = (a[sortConfig.key] || '').toString().toLowerCase();
+        valB = (b[sortConfig.key] || '').toString().toLowerCase();
+      }
+
+      if (valA < valB) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (valA > valB) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
     });
+
+  const getClassNamesFor = (name) => {
+    if (!sortConfig) return '';
+    return sortConfig.key === name ? (sortConfig.direction === 'asc' ? 'text-indigo-600' : 'text-indigo-600') : '';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -414,12 +464,12 @@ export default function Invoices() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Invoice #</th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Client</th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Total</th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Paid Date</th>
+                <th scope="col" onClick={() => requestSort('invoice_number')} className={`py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('invoice_number')}`}>Invoice # {sortConfig.key === 'invoice_number' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th scope="col" onClick={() => requestSort('client_id')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('client_id')}`}>Client {sortConfig.key === 'client_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th scope="col" onClick={() => requestSort('issue_date')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('issue_date')}`}>Date {sortConfig.key === 'issue_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th scope="col" onClick={() => requestSort('total_amount')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('total_amount')}`}>Total {sortConfig.key === 'total_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th scope="col" onClick={() => requestSort('status')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('status')}`}>Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th scope="col" onClick={() => requestSort('paid_date')} className={`px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 ${getClassNamesFor('paid_date')}`}>Paid Date {sortConfig.key === 'paid_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
                 <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -478,15 +528,21 @@ export default function Invoices() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Line Items</label>
                       <div className="bg-gray-50 p-3 rounded-md border border-gray-200 space-y-2">
-                        {formData.items.map((item, index) => (
+                        {formData.items && formData.items.map((item, index) => (
                           <div key={index} className="flex gap-2 items-center">
                             <input type="text" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} className="flex-grow border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm" placeholder="Description" />
                             <input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-16 border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm" placeholder="Qty" />
                             <input type="number" value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} className="w-24 border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm" placeholder="Price" />
                             <div className="w-20 text-right text-sm font-medium text-gray-700">${(item.quantity * item.unit_price).toFixed(2)}</div>
+                            <button type="button" onClick={() => removeLineItem(index)} className="text-red-500 hover:text-red-700">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+                            </button>
                           </div>
                         ))}
-                        {formData.items.length === 0 && <div className="text-sm text-gray-500 italic text-center">No items added. Select a job to populate.</div>}
+                        {(!formData.items || formData.items.length === 0) && <div className="text-sm text-gray-500 italic text-center">No items added. Select a job or add one manually.</div>}
+                        <button type="button" onClick={addLineItem} className="w-full mt-2 inline-flex items-center justify-center px-3 py-1.5 border border-dashed border-gray-400 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100">
+                          <PlusIcon /> Add Line Item
+                        </button>
                       </div>
                     </div>
 
