@@ -10,6 +10,7 @@ import Jobs from './Jobs';
 import Scheduler from './Scheduler';
 import Invoices from './Invoices';
 import Reports from './Reports';
+import Settings from './Settings';
 
 function App() {
   useEffect(() => {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/scheduler" element={<Scheduler />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Router>
   );

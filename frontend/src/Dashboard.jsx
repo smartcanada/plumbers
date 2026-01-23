@@ -40,6 +40,7 @@ export default function Dashboard() {
                 <Link to="/scheduler" className={`${isActive('/scheduler')} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>Scheduler</Link>
                 <Link to="/invoices" className={`${isActive('/invoices')} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>Invoices</Link>
                 <Link to="/reports" className={`${isActive('/reports')} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>Reports</Link>
+                <Link to="/settings" className={`${isActive('/settings')} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>Settings</Link>
               </div>
             </div>
             <div className="flex items-center">
@@ -89,6 +90,10 @@ export default function Dashboard() {
           <Link to="/reports" className="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-50 transition-colors">
             <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900">Reports</h5>
             <p className="font-normal text-gray-700">View business analytics and performance.</p>
+          </Link>
+          <Link to="/settings" className="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-50 transition-colors">
+            <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900">Settings</h5>
+            <p className="font-normal text-gray-700">Configure application options.</p>
           </Link>
         </div>
       </main>
