@@ -50,6 +50,9 @@ body.dark textarea {
 body.dark .hover\:bg-gray-50:hover {
   @apply !bg-gray-700;
 }
+body.dark .hover\:bg-gray-100:hover {
+  @apply !bg-gray-700;
+}
 
 /* Text Overrides */
 body.dark .text-gray-900 {
