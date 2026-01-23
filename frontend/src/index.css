@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full border-2 border-transparent bg-clip-content;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+
+/* Dark Mode Overrides */
+body.dark {
+  @apply bg-gray-900 text-gray-100;
+}
+
+/* Backgrounds */
+body.dark .bg-white {
+  @apply !bg-gray-800 !border-gray-700;
+}
+body.dark .bg-gray-50 {
+  @apply !bg-gray-900;
+}
+body.dark .bg-gray-100 {
+  @apply !bg-gray-800;
+}
+
+/* Borders & Inputs */
+body.dark .border-gray-200, 
+body.dark .border-gray-300 {
+  @apply !border-gray-700;
+}
+body.dark input, 
+body.dark select, 
+body.dark textarea {
+  @apply !bg-gray-700 !border-gray-600 !text-white;
+}
+
+/* Hover States */
+body.dark .hover\:bg-gray-50:hover {
+  @apply !bg-gray-700;
+}
+
+/* Text Overrides */
+body.dark .text-gray-900 {
+  @apply !text-gray-100;
+}
+body.dark .text-gray-800 {
+  @apply !text-gray-200;
+}
+body.dark .text-gray-700 {
+  @apply !text-gray-300;
+}
+body.dark .text-gray-500 {
+  @apply !text-gray-400;
+}
